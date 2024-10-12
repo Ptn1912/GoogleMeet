@@ -8,21 +8,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://kit.fontawesome.com/6510466b6c.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script>
         const params = new URLSearchParams(location.search);
         if (!params.get("room")) location.href = "/";
+        
+        // Kiểm tra xem username có trong localStorage hay không
+        const username = localStorage.getItem('username');
+        if (!username) {
+            // Nếu không có username, chuyển hướng về trang đăng nhập
+            location.href = "/login.html";
+        }
     </script>
 </head>
 
 <body>
-    <div class="overlay" id="overlay">
-        <div class="box">
-            <div class="head-name">Enter a Name</div>
-            <input type="text" class="name-field" placeholder="Type here.." id="name-field"></input><br>
-            <button class="continue-name">Continue</button>
-
-        </div>
-    </div>
     <div class="container-room">
         <div class="left-cont">
 
@@ -36,7 +36,7 @@
                 </div>
             </div>
 
-            <div class="whiteboard-cont"><canvas id="whiteboard" height="1000" width="1000"></canvas>
+            <div class="whiteboard-cont"style="display:hidden"><canvas id="whiteboard" height="1000" width="1000"></canvas>
                 <div class="colors-cont">
                     <div class="black" onclick="setColor('black')"></div>
                     <div class="red" onclick="setColor('#e74c3c')"></div>
@@ -75,7 +75,6 @@
                         <span class="tooltiptext">Leave Call</span>
                     </div>
 
-
                 </div>
                 <div class="copycode-cont">
                     <div class="roomcode"></div>
@@ -101,11 +100,14 @@
             <div class="chat-input-cont">
                 <div class="ci-cont"><input type="text" class="chat-input" placeholder="Type chat here.."></div>
                 <div class="ci-send"><button class="chat-send">Send</button></div>
+                <div class="ci-file"><input type="file" class="chat-file-input" id="chatFileInput" style="display: none;">
+                    <button class="chat-file-button" onclick="document.getElementById('chatFileInput').click();"><i class="fa-solid fa-paperclip"></i></button></div>
             </div>
         </div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/room.js"></script>
+    
 </body>
 
 </html>

@@ -1,20 +1,14 @@
 const socket = io();
 const myvideo = document.querySelector("#vd1");
-const roomid = params.get("room");
-let username;
 const chatRoom = document.querySelector('.chat-cont');
-const sendButton = document.querySelector('.chat-send');
-const messageField = document.querySelector('.chat-input');
 const videoContainer = document.querySelector('#vcont');
-const overlayContainer = document.querySelector('#overlay')
-const continueButt = document.querySelector('.continue-name');
-const nameField = document.querySelector('#name-field');
 const videoButt = document.querySelector('.novideo');
 const audioButt = document.querySelector('.audio');
 const cutCall = document.querySelector('.cutcall');
 const screenShareButt = document.querySelector('.screenshare');
 const whiteboardButt = document.querySelector('.board-icon')
-
+const { desktopCapturer } = require('electron');
+let roomid;
 //whiteboard js start
 const whiteboardCont = document.querySelector('.whiteboard-cont');
 const canvas = document.querySelector("#whiteboard");
@@ -22,7 +16,111 @@ const ctx = canvas.getContext('2d');
 
 let boardVisisble = false;
 
+
 whiteboardCont.style.visibility = 'hidden';
+document.addEventListener("DOMContentLoaded", function() {
+    const params = new URLSearchParams(window.location.search);
+    const roomid = params.get("room");
+    const username = params.get("username");
+    const sessionId = params.get("session");
+    const roomPassword = params.get("password");
+    const sendButton = document.querySelector('.chat-send'); // Nút gửi tin nhắn
+    const messageField = document.querySelector('.chat-input');
+    const fileInput = document.getElementById('chatFileInput');
+    const fileButton = document.querySelector('.chat-file-button');
+    if (!roomid || !username || !sessionId || !roomPassword) {
+        location.href = "/";
+    }
+
+    if (!username || !sessionId) {
+        location.href = "/login.html";
+    }
+
+    console.log(`Username from URL: ${username}, Session ID: ${sessionId}`);
+    const nameTagElement = document.querySelector("#myname");
+
+    if (nameTagElement) {
+        nameTagElement.textContent = `${username} (You)`;
+    } else {
+        console.error("Không tìm thấy phần tử #myname để cập nhật.");
+    }
+
+    const roomCodeElement = document.querySelector('.roomcode');
+    if (roomCodeElement) {
+        // roomCodeElement.textContent = `Room ID: ${roomid}, Password: ${roomPassword}`;
+        roomCodeElement.textContent = `Password: ${roomPassword}`;
+    } else {
+        console.error("Không tìm thấy phần tử .roomcode để hiển thị mã phòng.");
+    }
+
+
+    // Kết nối socket và tham gia phòng
+    socket.emit("join room", roomid, username, sessionId);
+    sendButton.addEventListener('click', () => {
+        const msg = messageField.value;
+        if (!msg.trim()) return; // Đảm bảo không gửi tin nhắn rỗng
+        messageField.value = ''; // Xóa nội dung trong trường nhập sau khi gửi
+
+        // Gửi tin nhắn qua socket
+        socket.emit('message', msg, username, roomid);
+    });
+
+    // Bạn cũng có thể thêm sự kiện cho trường nhập để gửi tin nhắn khi nhấn Enter
+    messageField.addEventListener('keyup', (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            sendButton.click(); // Kích hoạt nút gửi tin nhắn khi nhấn Enter
+        }
+    });
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            // Create a FileReader to read the file
+            const reader = new FileReader();
+            reader.onload = () => {
+                // Emit the file content and its name through the socket
+                socket.emit('file', {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    data: reader.result
+                }, username, roomid);
+            };
+            reader.readAsDataURL(file); // Read the file as Base64
+        }
+    });
+    // Lắng nghe tin nhắn từ server để hiển thị trong giao diện chat
+    socket.on('message', (msg, sendername, time) => {
+        const chatRoom = document.querySelector('.chat-cont');
+        chatRoom.scrollTop = chatRoom.scrollHeight; // Cuộn xuống cuối khung chat
+        chatRoom.innerHTML += `
+        <div class="message">
+            <div class="info">
+                <div class="username">${sendername}</div>
+                <div class="time">${time}</div>
+            </div>
+            <div class="content">
+                ${msg}
+            </div>
+        </div>`;
+    });
+    socket.on('file', (fileInfo, sendername, time) => {
+        const chatRoom = document.querySelector('.chat-cont');
+        chatRoom.scrollTop = chatRoom.scrollHeight; // Scroll to the bottom
+        chatRoom.innerHTML += `
+        <div class="message">
+            <div class="info">
+                <div class="username">${sendername}</div>
+                <div class="time">${time}</div>
+            </div>
+            <div class="content">
+                File: <a href="${fileInfo.data}" download="${fileInfo.name}">${fileInfo.name}</a>
+            </div>
+        </div>`;
+    });
+
+});
+
 
 let isDrawing = 0;
 let x = 0;
@@ -152,9 +250,25 @@ mymuteicon.style.visibility = 'hidden';
 let myvideooff = document.querySelector("#myvideooff");
 myvideooff.style.visibility = 'hidden';
 
-const configuration = { iceServers: [{ urls: "stun:stun.stunprotocol.org" }] }
+const configuration = {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:19302" }
+    ]
+  };
+  
+  
+const mediaConstraints = {
+    video: {
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        frameRate: { ideal: 15, max: 30 }
+    },
+    audio: true
+};
 
-const mediaConstraints = { video: true, audio: true };
 
 let connections = {};
 let cName = {};
@@ -164,53 +278,31 @@ let videoTrackSent = {};
 let mystream, myscreenshare;
 
 
-document.querySelector('.roomcode').innerHTML = `${roomid}`
-
 function CopyClassText() {
+    // Tìm phần tử chứa mã phòng
+    const textToCopy = document.querySelector('.roomcode');
 
-    var textToCopy = document.querySelector('.roomcode');
-    var currentRange;
-    if (document.getSelection().rangeCount > 0) {
-        currentRange = document.getSelection().getRangeAt(0);
-        window.getSelection().removeRange(currentRange);
-    }
-    else {
-        currentRange = false;
+    if (!textToCopy) {
+        console.error("Không tìm thấy phần tử chứa mã phòng");
+        return;
     }
 
-    var CopyRange = document.createRange();
-    CopyRange.selectNode(textToCopy);
-    window.getSelection().addRange(CopyRange);
-    document.execCommand("copy");
+    // Lấy văn bản từ phần tử chứa mã phòng
+    const roomCode = textToCopy.textContent;
 
-    window.getSelection().removeRange(CopyRange);
-
-    if (currentRange) {
-        window.getSelection().addRange(currentRange);
-    }
-
-    document.querySelector(".copycode-button").textContent = "Copied!"
-    setTimeout(()=>{
-        document.querySelector(".copycode-button").textContent = "Copy Code";
-    }, 5000);
+    // Sử dụng Clipboard API để sao chép
+    navigator.clipboard.writeText(roomCode)
+        .then(() => {
+            console.log('Sao chép thành công!');
+            document.querySelector(".copycode-button").textContent = "Copied!";
+            setTimeout(() => {
+                document.querySelector(".copycode-button").textContent = "Copy Code";
+            }, 3000);
+        })
+        .catch(err => {
+            console.error('Không thể sao chép vào clipboard:', err);
+        });
 }
-
-
-continueButt.addEventListener('click', () => {
-    if (nameField.value == '') return;
-    username = nameField.value;
-    overlayContainer.style.visibility = 'hidden';
-    document.querySelector("#myname").innerHTML = `${username} (You)`;
-    socket.emit("join room", roomid, username);
-
-})
-
-nameField.addEventListener("keyup", function (event) {
-    if (event.keyCode === 13) {
-        event.preventDefault();
-        continueButt.click();
-    }
-});
 
 socket.on('user count', count => {
     if (count > 1) {
@@ -239,53 +331,62 @@ function handleGetUserMediaError(e) {
 
 }
 
-
 function reportError(e) {
     console.log(e);
     return;
 }
 
-
 function startCall() {
+    const mediaConstraints = { video: true, audio: true };
 
     navigator.mediaDevices.getUserMedia(mediaConstraints)
         .then(localStream => {
             myvideo.srcObject = localStream;
-            myvideo.muted = true;
+            myvideo.muted = true; // Để tránh nghe lại âm thanh của chính mình
 
-            localStream.getTracks().forEach(track => {
-                for (let key in connections) {
-                    connections[key].addTrack(track, localStream);
-                    if (track.kind === 'audio')
-                        audioTrackSent[key] = track;
-                    else
-                        videoTrackSent[key] = track;
-                }
-            })
+            mystream = localStream;
 
+            // Gửi track cho tất cả các kết nối hiện có
+            Object.values(connections).forEach(peerConnection => {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+            });
         })
-        .catch(handleGetUserMediaError);
-
-
+        .catch(e => {
+            console.error("Lỗi khi truy cập camera và micro:", e);
+            alert("Không thể truy cập camera hoặc micro. Vui lòng kiểm tra cài đặt quyền.");
+        });
 }
 
-function handleVideoOffer(offer, sid, cname, micinf, vidinf) {
 
+function handleVideoOffer(offer, sid, cname, micinf, vidinf) {
+    console.log('Handling video offer from:', cname);
+    console.log('Offer:', offer);
     cName[sid] = cname;
     console.log('video offered recevied');
     micInfo[sid] = micinf;
     videoInfo[sid] = vidinf;
     connections[sid] = new RTCPeerConnection(configuration);
-
+    connections[sid].onicecandidateerror = (event) => {
+        console.error(`ICE Candidate Error on sid: ${sid} - Code: ${event.errorCode}, Text: ${event.errorText}, Address: ${event.address}`);
+    };
+    
     connections[sid].onicecandidate = function (event) {
         if (event.candidate) {
             console.log('icecandidate fired');
             socket.emit('new icecandidate', event.candidate, sid);
         }
     };
-
+    connections[sid].oniceconnectionstatechange = function() {
+        console.log('ICE state for', sid, ': ', connections[sid].iceConnectionState);
+        if (connections[sid].iceConnectionState === 'failed' || connections[sid].iceConnectionState === 'disconnected') {
+            console.error(`ICE connection failed for SID: ${sid}`);
+        }
+      };
+      
     connections[sid].ontrack = function (event) {
-
+        console.log('Track event received from:', sid, event.streams);
         if (!document.getElementById(sid)) {
             console.log('track event fired')
             let vidCont = document.createElement('div');
@@ -325,9 +426,7 @@ function handleVideoOffer(offer, sid, cname, micinf, vidinf) {
             vidCont.appendChild(videoOff);
 
             videoContainer.appendChild(vidCont);
-
         }
-
 
     };
 
@@ -339,18 +438,20 @@ function handleVideoOffer(offer, sid, cname, micinf, vidinf) {
     };
 
     connections[sid].onnegotiationneeded = function () {
-
         connections[sid].createOffer()
-            .then(function (offer) {
-                return connections[sid].setLocalDescription(offer);
-            })
-            .then(function () {
-
+          .then(function (offer) {
+            console.log('Created offer for SID:', sid);
+            return connections[sid].setLocalDescription(offer);
+          })
+          .then(function () {
                 socket.emit('video-offer', connections[sid].localDescription, sid);
+                // socket.emit('video-offer', connections[sid].localDescription, sid);
 
-            })
-            .catch(reportError);
-    };
+            socket.emit('video-offer', connections[sid].localDescription, sid);
+
+          })
+          .catch(reportError);
+      };
 
     let desc = new RTCSessionDescription(offer);
 
@@ -385,16 +486,15 @@ function handleVideoOffer(offer, sid, cname, micinf, vidinf) {
         })
         .catch(handleGetUserMediaError);
 
-
 }
 
 function handleNewIceCandidate(candidate, sid) {
-    console.log('new candidate recieved')
-    var newcandidate = new RTCIceCandidate(candidate);
-
-    connections[sid].addIceCandidate(newcandidate)
-        .catch(reportError);
-}
+    if (connections[sid]) {
+      const newCandidate = new RTCIceCandidate(candidate);
+      connections[sid].addIceCandidate(newCandidate)
+        .catch(error => console.error(`Error adding received ICE candidate: ${error}`));
+    }
+  }
 
 function handleVideoAnswer(answer, sid) {
     console.log('answered the offer')
@@ -407,55 +507,74 @@ function handleVideoAnswer(answer, sid) {
 screenShareButt.addEventListener('click', () => {
     screenShareToggle();
 });
-let screenshareEnabled = false;
 function screenShareToggle() {
-    let screenMediaPromise;
-    if (!screenshareEnabled) {
-        if (navigator.getDisplayMedia) {
-            screenMediaPromise = navigator.getDisplayMedia({ video: true });
-        } else if (navigator.mediaDevices.getDisplayMedia) {
-            screenMediaPromise = navigator.mediaDevices.getDisplayMedia({ video: true });
-        } else {
-            screenMediaPromise = navigator.mediaDevices.getUserMedia({
-                video: { mediaSource: "screen" },
-            });
-        }
-    } else {
-        screenMediaPromise = navigator.mediaDevices.getUserMedia({ video: true });
-    }
-    screenMediaPromise
-        .then((myscreenshare) => {
-            screenshareEnabled = !screenshareEnabled;
-            for (let key in connections) {
-                const sender = connections[key]
-                    .getSenders()
-                    .find((s) => (s.track ? s.track.kind === "video" : false));
-                sender.replaceTrack(myscreenshare.getVideoTracks()[0]);
+    let screenshareEnabled = false;  // Biến để kiểm tra trạng thái chia sẻ màn hình
+
+    desktopCapturer.getSources({ types: ['window', 'screen'] })
+        .then(async (sources) => {
+            console.log("Available sources for screen capture:", sources); // Log sources
+            for (const source of sources) {
+                if (source.name === 'Entire Screen' || source.name.startsWith('Screen')) {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({
+                            audio: false,
+                            video: {
+                                mandatory: {
+                                    chromeMediaSource: 'desktop',
+                                    chromeMediaSourceId: source.id,
+                                    minWidth: 1280,
+                                    maxWidth: 1280,
+                                    minHeight: 720,
+                                    maxHeight: 720,
+                                }
+                            }
+                        });
+
+                        // Sau khi có stream, thay thế track video hiện tại
+                        screenshareEnabled = !screenshareEnabled;
+                        for (let key in connections) {
+                            const sender = connections[key]
+                                .getSenders()
+                                .find((s) => (s.track ? s.track.kind === "video" : false));
+                            if (sender) {
+                                console.log("Replacing video track with screen share track");
+                                sender.replaceTrack(stream.getVideoTracks()[0]);
+                            }
+                        }
+
+                        // Hiển thị video chia sẻ màn hình cho người dùng
+                        myvideo.srcObject = stream;
+                        myvideo.muted = true;
+                        mystream = stream;
+
+                        // Thay đổi biểu tượng nút chia sẻ màn hình
+                        screenShareButt.innerHTML = (screenshareEnabled
+                            ? `<i class="fas fa-desktop"></i><span class="tooltiptext">Stop Share Screen</span>`
+                            : `<i class="fas fa-desktop"></i><span class="tooltiptext">Share Screen</span>`
+                        );
+
+                        // Xử lý khi chia sẻ màn hình kết thúc
+                        stream.getVideoTracks()[0].onended = function () {
+                            if (screenshareEnabled) screenShareToggle();
+                        };
+                    } catch (e) {
+                        alert("Unable to get screen stream: " + e.message);
+                        console.error('Unable to get screen stream', e);
+                    }
+                    return;
+                }
             }
-            myscreenshare.getVideoTracks()[0].enabled = true;
-            const newStream = new MediaStream([
-                myscreenshare.getVideoTracks()[0], 
-            ]);
-            myvideo.srcObject = newStream;
-            myvideo.muted = true;
-            mystream = newStream;
-            screenShareButt.innerHTML = (screenshareEnabled 
-                ? `<i class="fas fa-desktop"></i><span class="tooltiptext">Stop Share Screen</span>`
-                : `<i class="fas fa-desktop"></i><span class="tooltiptext">Share Screen</span>`
-            );
-            myscreenshare.getVideoTracks()[0].onended = function() {
-                if (screenshareEnabled) screenShareToggle();
-            };
-        })
-        .catch((e) => {
-            alert("Unable to share screen:" + e.message);
-            console.error(e);
         });
 }
 
+
 socket.on('video-offer', handleVideoOffer);
 
-socket.on('new icecandidate', handleNewIceCandidate);
+socket.on('new icecandidate', (candidate, sid) => {
+    console.log('Received new ICE candidate for SID:', sid, candidate);
+    handleNewIceCandidate(candidate, sid);
+});
+
 
 socket.on('video-answer', handleVideoAnswer);
 
@@ -476,16 +595,17 @@ socket.on('join room', async (conc, cnames, micinfo, videoinfo) => {
     if (conc) {
         await conc.forEach(sid => {
             connections[sid] = new RTCPeerConnection(configuration);
-
-            connections[sid].onicecandidate = function (event) {
+              
+              connections[sid].onicecandidate = function (event) {
                 if (event.candidate) {
-                    console.log('icecandidate fired');
-                    socket.emit('new icecandidate', event.candidate, sid);
+                  console.log('icecandidate fired for SID:', sid);
+                  socket.emit('new icecandidate', event.candidate, sid);
                 }
-            };
+              };
+              
 
             connections[sid].ontrack = function (event) {
-
+                console.log('Track event received from:', sid, event.streams);
                 if (!document.getElementById(sid)) {
                     console.log('track event fired')
                     let vidCont = document.createElement('div');
@@ -537,19 +657,15 @@ socket.on('join room', async (conc, cnames, micinfo, videoinfo) => {
             }
 
             connections[sid].onnegotiationneeded = function () {
+                connections[sid].createOffer({ iceRestart: true })
+                .then(offer => connections[sid].setLocalDescription(offer))
+                .then(() => {
+                    socket.emit('video-offer', connections[sid].localDescription, sid);
+                })
+                .catch(reportError);
 
-                connections[sid].createOffer()
-                    .then(function (offer) {
-                        return connections[sid].setLocalDescription(offer);
-                    })
-                    .then(function () {
-
-                        socket.emit('video-offer', connections[sid].localDescription, sid);
-
-                    })
-                    .catch(reportError);
             };
-
+            
         });
 
         console.log('added all sockets to connections');
@@ -575,32 +691,6 @@ socket.on('remove peer', sid => {
 
     delete connections[sid];
 })
-
-sendButton.addEventListener('click', () => {
-    const msg = messageField.value;
-    messageField.value = '';
-    socket.emit('message', msg, username, roomid);
-})
-
-messageField.addEventListener("keyup", function (event) {
-    if (event.keyCode === 13) {
-        event.preventDefault();
-        sendButton.click();
-    }
-});
-
-socket.on('message', (msg, sendername, time) => {
-    chatRoom.scrollTop = chatRoom.scrollHeight;
-    chatRoom.innerHTML += `<div class="message">
-    <div class="info">
-        <div class="username">${sendername}</div>
-        <div class="time">${time}</div>
-    </div>
-    <div class="content">
-        ${msg}
-    </div>
-</div>`
-});
 
 videoButt.addEventListener('click', () => {
 
@@ -721,5 +811,10 @@ whiteboardButt.addEventListener('click', () => {
 })
 
 cutCall.addEventListener('click', () => {
-    location.href = '/';
-})
+    // Clear the session ID and room-related data but keep the username
+    localStorage.removeItem('sessionId');
+    localStorage.removeItem('roomId');  // If applicable, clear any room-specific information
+    
+    // Redirect the user back to the main page
+    location.href = '/index.html';
+});

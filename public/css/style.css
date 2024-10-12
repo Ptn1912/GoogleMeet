@@ -323,7 +323,7 @@ navbar .logo {
 .container-room .left-cont .whiteboard-cont .colors-cont .red {
   height: 30px;
   width: 30px;
-  border-radius: 50px;
+  border-radius: 35px;
   background-color: #e74c3c;
   margin-top: 10px;
 }
@@ -470,6 +470,7 @@ navbar .logo {
   margin-left: auto;
   margin-right: auto;
 }
+
 .container-room .left-cont .video-cont .video-box .mute-icon {
   color: #d63434;
   bottom: 10px;
@@ -648,6 +649,129 @@ navbar .logo {
 .container-room .left-cont .footer .copycode-cont .copycode-button:focus {
   outline: none;
 }
+/* Custom styles for the room list page */
+.create-join {
+  max-width: 600px;
+  margin: 30px auto;
+  text-align: center;
+}
+.video-cont {
+  max-width: 600px;
+  margin: 20px auto;
+  text-align: center;
+}
+.rooms-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto 20px auto; /* Căn giữa và thêm khoảng cách bên dưới */
+}
+
+/* Thiết lập cho tiêu đề h3 */
+.rooms-header h3 {
+  font-size: 1.5em;
+  color: #333;
+  margin: 0;
+}
+.rooms-view-full-width {
+  width: 100%;
+  padding: 30px 0;
+  background-color: #f8f9fa; /* Màu nền nhạt để làm nổi bật */
+  text-align: center;
+  box-shadow: 0px -2px 10px rgba(0, 0, 0, 0.1); /* Thêm shadow để làm nổi bật */
+  margin-top: 40px;
+}
+#roomsList {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.list-group {
+  max-width: 800px;
+  margin: 0 auto; /* Căn giữa danh sách phòng */
+}
+.list-group-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-radius: 5px;
+  background-color: #ffffff;
+  margin-bottom: 10px;
+  transition: background-color 0.3s;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Thêm shadow để tạo cảm giác nổi */
+}
+
+.list-group-item:hover {
+  background-color: #e9ecef; /* Màu nền khi hover */
+}
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0,0,0);
+  background-color: rgba(0,0,0,0.4);
+  padding-top: 60px;
+}
+
+.modal-content {
+  z-index: 1001;
+  position: relative;
+  background-color: #fefefe;
+  margin: 5% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  max-width: 400px;
+  text-align: center;
+}
+.modal * {
+  pointer-events: auto; /* Đây là lỗi có thể khiến phần tử input không tương tác được */
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+#loadRoomsButton {
+  padding: 10px 20px;
+  font-size: 1em;
+  background-color: #17a2b8; /* Màu nền cho nút */
+  color: white; /* Màu chữ */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+#loadRoomsButton:hover {
+  background-color: #138496; /* Màu nền khi hover */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); /* Thêm đổ bóng khi hover để nổi bật */
+}
+.btn-primary {
+  transition: background-color 0.3s, color 0.3s;
+  padding: 8px 16px;
+}
+
+.btn-primary:hover {
+  background-color: #393e46;
+  color: white;
+}
+
 .container-room .right-cont {
   width: 30%;
   background-color: #ffffff;
@@ -733,6 +857,32 @@ navbar .logo {
   width: 20%;
   margin-left: 20px;
 }
+/* Styles for the Attach File Button */
+.container-room .right-cont .chat-input-cont .ci-file {
+  margin-left: 10px;
+}
+
+.container-room .right-cont .chat-input-cont .chat-file-button {
+  height: 36px;
+  padding: 5px 20px;
+  border: none;
+  background-color: #4ecca3;
+  color: white;
+  font-weight: bold;
+  font-size: 0.85rem;
+  border-radius: 2px;
+  transition: background-color 0.5s;
+}
+
+.container-room .right-cont .chat-input-cont .chat-file-button:hover {
+  background-color: #393e46;
+  cursor: pointer;
+}
+
+.container-room .right-cont .chat-input-cont .chat-file-button:focus {
+  outline: none;
+}
+
 .container-room .right-cont .chat-input-cont .chat-input {
   width: 100%;
   height: 36px;

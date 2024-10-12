@@ -1,10 +1,15 @@
+const socket = io();
 const createButton = document.querySelector("#createroom");
 const videoCont = document.querySelector('.video-self');
-const codeCont = document.querySelector('#roomcode');
+const loadRoomsButton = document.querySelector("#loadRoomsButton"); // Nút Load Rooms
 const joinBut = document.querySelector('#joinroom');
 const mic = document.querySelector('#mic');
 const cam = document.querySelector('#webcam');
-
+let username = localStorage.getItem('username');
+const passwordModal = document.getElementById('passwordModal');
+const closeModal = document.querySelector('.close');
+const modalJoinButton = document.getElementById('modalJoinButton');
+let roomNameToJoin = "";
 let micAllowed = 1;
 let camAllowed = 1;
 
@@ -14,52 +19,94 @@ navigator.mediaDevices.getUserMedia(mediaConstraints)
     .then(localstream => {
         videoCont.srcObject = localstream;
     })
-
-function uuidv4() {
-    return 'xxyxyxxyx'.replace(/[xy]/g, function (c) {
-        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-}
-
+    
 const createroomtext = 'Creating Room...';
 
 createButton.addEventListener('click', (e) => {
     e.preventDefault();
-    createButton.disabled = true;
-    createButton.innerHTML = 'Creating Room';
-    createButton.classList = 'createroom-clicked';
+    
+    if (!username || username.trim() === '') {
+        console.error("Username không hợp lệ, vui lòng nhập tên hợp lệ");
+        alert("Please enter a valid username.");
+        return;
+    }
+    
+    const roomName = document.getElementById("roomName").value.trim();
+    const roomPassword = document.getElementById("roomPassword").value.trim();
 
-    setInterval(() => {
-        if (createButton.innerHTML < createroomtext) {
-            createButton.innerHTML = createroomtext.substring(0, createButton.innerHTML.length + 1);
-        }
-        else {
-            createButton.innerHTML = createroomtext.substring(0, createButton.innerHTML.length - 3);
-        }
-    }, 500);
+    if (!roomName || !roomPassword) {
+        alert("Please enter both room name and password.");
+        return;
+    }
 
-    //const name = nameField.value;
-    location.href = `/room.html?room=${uuidv4()}`;
+    // Emit sự kiện để tạo phòng
+    socket.emit("create room", roomName, roomPassword);
+
+    const sessionId = new Date().getTime();  // Tạo session ID đơn giản
+    localStorage.setItem('sessionId', sessionId);
+
+    alert("Room created successfully!");
 });
 
-joinBut.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (codeCont.value.trim() == "") {
-        codeCont.classList.add('roomcode-error');
+modalJoinButton.addEventListener('click', () => {
+    const roomPassword = document.getElementById('modalPassword').value.trim();
+    console.log("Attempting to join room:", roomNameToJoin, "with password:", roomPassword);
+    
+    if (!roomPassword) {
+        alert("Please enter the password.");
         return;
     }
-    const code = codeCont.value;
-    location.href = `/room.html?room=${code}`;
-})
 
-codeCont.addEventListener('change', (e) => {
-    e.preventDefault();
-    if (codeCont.value.trim() !== "") {
-        codeCont.classList.remove('roomcode-error');
+    const sessionId = localStorage.getItem('sessionId');
+    const username = localStorage.getItem('username');
+    if (!username || !sessionId) {
+        console.error("User not authenticated, redirecting to login");
+        location.href = "login.html";
         return;
     }
-})
+
+    // Gửi yêu cầu xác thực tới server
+    socket.emit("check room password", roomNameToJoin, roomPassword, (isValid) => {
+        console.log("Password check result for room:", roomNameToJoin, "isValid:", isValid);
+        if (isValid) {
+            console.log("Redirecting to room.html");
+            location.href = `/room.html?room=${roomNameToJoin}&username=${encodeURIComponent(username)}&session=${sessionId}&password=${roomPassword}`;
+        } else {
+            alert("Incorrect password for the room. Please try again.");
+        }
+    });
+});
+document.addEventListener('click', (event) => {
+    if (event.target.classList.contains('join-room-btn')) {
+        roomNameToJoin = event.target.dataset.roomName;
+        passwordModal.style.display = "block";
+        document.getElementById('modalPassword').focus(); // Đặt focus vào input mật khẩu khi modal hiện
+    }
+});
+
+// Đóng modal khi nhấn dấu "x"
+closeModal.addEventListener('click', () => {
+    passwordModal.style.display = "none";
+});
+loadRoomsButton.addEventListener('click', () => {
+    // Yêu cầu server gửi lại danh sách các phòng hiện có
+    socket.emit("get rooms list");
+});
+// Cập nhật danh sách phòng khi server gửi sự kiện "update rooms list"
+// Lắng nghe sự kiện từ server để cập nhật danh sách phòng
+socket.on("update rooms list", (rooms) => {
+    console.log("Received updated rooms list:", rooms); // Log để kiểm tra danh sách phòng
+    const roomsListContainer = document.getElementById("roomsList");
+    roomsListContainer.innerHTML = ""; // Clear current list
+
+    rooms.forEach(room => {
+        roomsListContainer.innerHTML += `
+        <div class="list-group-item room-item">
+            <span>${room.name}</span>
+            <button class="btn btn-primary join-room-btn" data-room-name="${room.name}">Join</button>
+        </div>`;
+    });
+});
 
 cam.addEventListener('click', () => {
     if (camAllowed) {

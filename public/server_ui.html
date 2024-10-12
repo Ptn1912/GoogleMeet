@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server </title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #logs-container {
+            padding: 20px;
+        }
+        .log-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Server</h2>
+    <div id="logs-container"></div>
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io('http://localhost:3000'); // Kết nối đến server
+
+        // Kiểm tra kết nối socket
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        // Lắng nghe sự kiện để cập nhật log khi có thay đổi
+        socket.on('client logs', (logs) => {
+            console.log('Received client logs:', logs);
+            const logsContainer = document.getElementById('logs-container');
+            logsContainer.innerHTML = '';
+            logs.forEach(log => {
+                const logItem = document.createElement('div');
+                logItem.className = 'log-item';
+                logItem.innerHTML = `
+                    <p><strong>User:</strong> ${log.username}</p>
+                    <p><strong>Room ID:</strong> ${log.roomid}</p>
+                    <p><strong>Join Time:</strong> ${log.joinTime}</p>
+                    <p><strong>Leave Time:</strong> ${log.leaveTime ? log.leaveTime : "Still in room"}</p>
+                `;
+                logsContainer.appendChild(logItem);
+            });
+        });
+
+        // Gửi yêu cầu để lấy log khi trang tải
+        socket.emit('get client logs');
+    </script>
+</body>
+</html>
