@@ -22,9 +22,9 @@
 <body>
     <h2>Server</h2>
     <div id="logs-container"></div>
-    <script src="https://192.168.88.113:3000/socket.io/socket.io.js"></script>
+    <script src="https://localhost:3000/socket.io/socket.io.js"></script>
     <script>
-        const socket = io('https://192.168.88.113:3000'); // Kết nối đến server
+        const socket = io('https://localhost:3000'); // Kết nối đến server
 
         // Kiểm tra kết nối socket
         socket.on('connect', () => {
