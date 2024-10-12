@@ -1,7 +1,13 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
-let win1, win2, win3,serverLogWin;
+let win1, win2, win3,serverLogWin;;
+
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+  // Bỏ qua tất cả các lỗi chứng chỉ, cho phép sử dụng chứng chỉ tự ký
+  event.preventDefault();
+  callback(true);
+});
 
 function createWindow1() {
   win1 = new BrowserWindow({
@@ -15,7 +21,7 @@ function createWindow1() {
       webSecurity: false         // Tắt bảo mật web để tránh CORS (cân nhắc bảo mật)
     }
   });
-  win1.loadURL('http://localhost:3000'); // Load the first web app URL
+  win1.loadURL('https://192.168.88.113:3000'); // Load the first web app URL
 }
 
 function createWindow2() {
@@ -30,7 +36,7 @@ function createWindow2() {
       webSecurity: false
     }
   });
-  win2.loadURL('http://localhost:3000'); // Load the second web app URL
+  win2.loadURL('https://192.168.88.113:3000'); // Load the second web app URL
 }
 
 // function createWindow3() {
