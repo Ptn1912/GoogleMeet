@@ -431,7 +431,6 @@
             <input type="password" id="password" placeholder="Password"required />
           </div>
           <input type="submit" value="Login" class="btn solid" />
-          <span class="error-message" id="error-message">Incorrect username or password</span>
           <p class="social-text">Or Sign in with social platforms</p>
           <div class="social-media">
             <a href="#" class="social-icon">
@@ -524,39 +523,60 @@
       container.classList.remove("sign-up-mode");
     });
 
-    document.querySelector('#loginForm').addEventListener('submit', function (event) {
+    document.querySelector('#loginForm').addEventListener('submit', async function (event) {
       event.preventDefault();
-
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
+      console.log("Email nhập:", email);
+      console.log("Password nhập:", password);
 
-      if (email && password) {
-        const sessionId = new Date().getTime();  // Simple unique session ID
-        localStorage.setItem('username', email);
-        localStorage.setItem('sessionId', sessionId);
-        alert("Signin successful. Please login.");
-        location.href = "index.html";
-      } else {
-        document.getElementById('error-message').style.display = 'block';
-      }
-    });
-    document.querySelector("#signupForm").addEventListener("submit", function(e) {
-            e.preventDefault();
-            const username = document.querySelector("#signupUsername").value;
-            const email = document.querySelector("#signupEmail").value;
-            const password = document.querySelector("#signupPassword").value;
-            // const confirmPassword = document.querySelector("#confirmPassword").value;
-
-            // if (password !== confirmPassword) {
-            //     alert("Passwords do not match!");
-            //     return;
-            // }
-
-            // Giả lập việc đăng ký thành công
-            alert("Signup successful. Please login.");
-            container.classList.remove("sign-up-mode");
-            // location.href = "login.html";
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
         });
+
+        const result = await response.json();
+        if (response.ok) {
+          localStorage.setItem('username', result.user);
+          
+            alert('Login successful!');
+            location.href = `index.html?username=${encodeURIComponent(result.user)}&userid=${encodeURIComponent(result.UserID)}`;
+        } else {
+            alert(result.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+});
+
+
+
+document.querySelector("#signupForm").addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const username = document.querySelector("#signupUsername").value;
+    const email = document.querySelector("#signupEmail").value;
+    const password = document.querySelector("#signupPassword").value;
+
+    try {
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            alert('Signup successful! Please login.');
+            container.classList.remove("sign-up-mode");
+        } else {
+            alert(result.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+});
 
   </script>
 </body>

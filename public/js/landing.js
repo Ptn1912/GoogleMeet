@@ -5,11 +5,14 @@ const loadRoomsButton = document.querySelector("#loadRoomsButton"); // Nút Load
 const joinBut = document.querySelector('#joinroom');
 const mic = document.querySelector('#mic');
 const cam = document.querySelector('#webcam');
-let username = localStorage.getItem('username');
+// let username = localStorage.getItem('username');
 const passwordModal = document.getElementById('passwordModal');
 const closeModal = document.querySelector('.close');
 const modalJoinButton = document.getElementById('modalJoinButton');
 let roomNameToJoin = "";
+const joinInput = document.getElementById("joinRoomPassword");
+const joinButton = document.getElementById("joinRoomButton");
+
 let micAllowed = 1;
 let camAllowed = 1;
 
@@ -19,15 +22,54 @@ navigator.mediaDevices.getUserMedia(mediaConstraints)
     .then(localstream => {
         videoCont.srcObject = localstream;
     })
+joinInput.addEventListener("input", () => {
+        if (joinInput.value.trim()) {
+            joinButton.classList.add("active");
+            joinButton.disabled = false;
+        } else {
+            joinButton.classList.remove("active");
+            joinButton.disabled = true;
+        }
+});
     
-const createroomtext = 'Creating Room...';
-
+joinButton.addEventListener("click", () => {
+        const roomPassword = joinInput.value.trim();
+        let username = localStorage.getItem('username');
+        
+        if (roomPassword) {
+            location.href = `/room.html?password=${roomPassword}&username=${encodeURIComponent(localStorage.getItem('username'))}`;
+        }
+});
+document.querySelector("#createQuickRoom").addEventListener('click', () => {
+    let username = localStorage.getItem('username');
+    
+    if (!username) {
+        alert("Please log in to create a quick room.");
+        location.href = "login.html";
+        return;
+    }
+    socket.emit("create and join quick room", (roomPassword) => {
+        // Automatically join the user in the room and show them the password to share
+        alert(`Quick Room created successfully! Use this password to invite others: ${roomPassword}`);
+        
+        // Redirect to the room page with the password for easy access
+        location.href = `/room.html?password=${roomPassword}&username=${encodeURIComponent(localStorage.getItem('username'))}`;
+    });
+});
+    
 createButton.addEventListener('click', (e) => {
     e.preventDefault();
-    
+    const username = localStorage.getItem('username');
+    const userid = localStorage.getItem('userid');
+    // const 
     if (!username || username.trim() === '') {
         console.error("Username không hợp lệ, vui lòng nhập tên hợp lệ");
         alert("Please enter a valid username.");
+        return;
+    }
+    if (!userid || userid.trim() === '') {
+        console.error("userid không hợp lệ, vui lòng nhập tên hợp lệ");
+        alert("Please enter a valid userid.");
         return;
     }
     
@@ -40,42 +82,32 @@ createButton.addEventListener('click', (e) => {
     }
 
     // Emit sự kiện để tạo phòng
-    socket.emit("create room", roomName, roomPassword);
-
-    const sessionId = new Date().getTime();  // Tạo session ID đơn giản
-    localStorage.setItem('sessionId', sessionId);
+    socket.emit("create room",userid, roomName, roomPassword);
+    console.log("Creating room with name:", roomName);
+    console.log("Creating room with password:", roomPassword);
+    console.log("Username:", username);
 
     alert("Room created successfully!");
 });
 
 modalJoinButton.addEventListener('click', () => {
     const roomPassword = document.getElementById('modalPassword').value.trim();
-    console.log("Attempting to join room:", roomNameToJoin, "with password:", roomPassword);
-    
-    if (!roomPassword) {
-        alert("Please enter the password.");
-        return;
-    }
-
-    const sessionId = localStorage.getItem('sessionId');
     const username = localStorage.getItem('username');
-    if (!username || !sessionId) {
-        console.error("User not authenticated, redirecting to login");
-        location.href = "login.html";
+    
+    if (!username) {
+        location.href = "login.html"; // Redirect if no username found
         return;
     }
 
-    // Gửi yêu cầu xác thực tới server
     socket.emit("check room password", roomNameToJoin, roomPassword, (isValid) => {
-        console.log("Password check result for room:", roomNameToJoin, "isValid:", isValid);
         if (isValid) {
-            console.log("Redirecting to room.html");
-            location.href = `/room.html?room=${roomNameToJoin}&username=${encodeURIComponent(username)}&session=${sessionId}&password=${roomPassword}`;
+            location.href = `/room.html?room=${roomNameToJoin}&username=${encodeURIComponent(username)}&password=${roomPassword}`;
         } else {
-            alert("Incorrect password for the room. Please try again.");
+            alert("Incorrect password for the room.");
         }
     });
 });
+
 document.addEventListener('click', (event) => {
     if (event.target.classList.contains('join-room-btn')) {
         roomNameToJoin = event.target.dataset.roomName;
@@ -89,15 +121,16 @@ closeModal.addEventListener('click', () => {
     passwordModal.style.display = "none";
 });
 loadRoomsButton.addEventListener('click', () => {
-    // Yêu cầu server gửi lại danh sách các phòng hiện có
+    // Request the server to send the list of available rooms
     socket.emit("get rooms list");
 });
-// Cập nhật danh sách phòng khi server gửi sự kiện "update rooms list"
-// Lắng nghe sự kiện từ server để cập nhật danh sách phòng
+
+// Listen for the event from the server to update the rooms list
 socket.on("update rooms list", (rooms) => {
-    console.log("Received updated rooms list:", rooms); // Log để kiểm tra danh sách phòng
+    console.log("Received updated rooms list:", rooms); // Log the received rooms
+
     const roomsListContainer = document.getElementById("roomsList");
-    roomsListContainer.innerHTML = ""; // Clear current list
+    roomsListContainer.innerHTML = ""; // Clear the current list
 
     rooms.forEach(room => {
         roomsListContainer.innerHTML += `
@@ -107,6 +140,7 @@ socket.on("update rooms list", (rooms) => {
         </div>`;
     });
 });
+
 
 cam.addEventListener('click', () => {
     if (camAllowed) {

@@ -3,23 +3,12 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>QuickMeet Room</title>
+    <title>Meet Room</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://kit.fontawesome.com/6510466b6c.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script>
-        const params = new URLSearchParams(location.search);
-        if (!params.get("room")) location.href = "/";
-        
-        // Kiểm tra xem username có trong localStorage hay không
-        const username = localStorage.getItem('username');
-        if (!username) {
-            // Nếu không có username, chuyển hướng về trang đăng nhập
-            location.href = "/login.html";
-        }
-    </script>
 </head>
 
 <body>

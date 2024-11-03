@@ -8,32 +8,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://kit.fontawesome.com/6510466b6c.js" crossorigin="anonymous"></script>
-    <script>
-        // Kiểm tra xem người dùng đã đăng nhập hay chưa
-        if (!localStorage.getItem('username')) {
-            location.href = "login.html";
-        }
-    </script>
 </head>
 
 <body>
     <navbar>
         <div class="logo">QuickMeet</div>
     </navbar>
-    <div class="user-info">
+    <div class="name">
         Welcome, <span id="usernameDisplay"></span>!
-        <button id="logoutButton" class="btn btn-danger btn-sm">Logout<i class="fa-solid fa-right-from-bracket"></i></button>
+        <!-- <span id="useridDisplay">
+        </span> -->
+        <button id="logoutButton" >Logout<i class="fa-solid fa-right-from-bracket"></i></button>
     </div>
     <div class="main">
-        
         <!-- Khối tạo phòng -->
         <div class="create-join">
             <div class="text">
                 <div class="head">Create Video Meetings in one-click.</div>
             </div>
+            
             <input type="text" id="roomName" placeholder="Enter Room Name"class="roomcode"required><br>
             <input type="password" class="roomcode" id="roomPassword" placeholder="Enter Room Password" required>
-            <button id="createroom" class="createroom-butt unselectable">Create Room</button>
+            <button id="createroom" class="createroom-butt">Create Room</button>
+            <div style="display: flex;gap: 10px;margin-top: 15;">
+            <button id="createQuickRoom" class="btn btn-primary">Create Quick Room</button>
+            <div class="join-room-container">
+                <div class="join-room-input-wrapper">
+                    <i class="fas fa-keyboard"></i>
+                    <input type="text" id="joinRoomPassword" placeholder="Enter a code or link" class="join-room-input">
+                </div>
+                <button id="joinRoomButton" class="join-room-btn" >Join</button>
+            </div>
+        </div>
         </div>
 
         <!-- Video container -->
@@ -68,13 +74,53 @@
     </div>
 
     <script>
-        // Hiển thị tên người dùng
-        document.querySelector("#usernameDisplay").textContent = localStorage.getItem('username');
-        document.querySelector("#logoutButton").addEventListener("click", function() {
+    document.addEventListener("DOMContentLoaded", () => {
+        // const username = localStorage.getItem('username');
+        const params = new URLSearchParams(window.location.search);
+        const username = params.get("username");
+        // const userid = params.get("userid");
+        // localStorage.setItem('userid', result.UserID);
+            if (!username ) {
+                location.href = "login.html";
+                return;
+            }
+
+            // Display username
+            document.querySelector("#usernameDisplay").textContent = username;
+            // document.querySelector("#useridDisplay").textContent = userid;
+            
+    document.querySelector("#logoutButton").addEventListener("click", async function() {
+            const username = localStorage.getItem('username');
+            
+            // Gửi yêu cầu POST đến server để cập nhật trạng thái IsOnline
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username })
+                });
+                
+                if (response.ok) {
+                    console.log('User logged out and status updated');
+                } else {
+                    console.error('Failed to update online status');
+                }
+            } catch (error) {
+                console.error('Error logging out:', error);
+            }
+
+            // Xóa dữ liệu trong localStorage và chuyển hướng đến trang login
             localStorage.removeItem('username');
-            localStorage.removeItem('sessionId');  // Clear session data on logout
             location.href = "login.html";
         });
+    });
+    window.addEventListener('beforeunload', () => {
+            // Remove the username from local storage when the window is closed
+            localStorage.removeItem('username');
+        });
+
     </script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/landing.js"></script>
